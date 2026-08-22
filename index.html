@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Craft Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    /* глянцевый чёрный: не плоский, а с холодной глубиной */
+    --ink:#000000;
+    --ink-2:#0b0c0e;
+    --text:#f5f5f7;
+    --dim:#a1a1a6;
+    --gold:#e0a44c;
+    --hair:rgba(255,255,255,.10);
+    --hair-soft:rgba(255,255,255,.06);
+    --h:min(66vh,560px);
+    --half:calc(var(--h) * 0.28125);   /* половина ширины кадра 9:16 */
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  body{
+    background:var(--ink);
+    color:var(--text);
+    font-family:'Manrope',system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-weight:500;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* ── живой фон: выставленный свет на глянце ── */
+  #bgfx{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    display:block;
+    z-index:-1;
+  }
+
+  .wrap{max-width:760px;margin:0 auto;padding:0 24px;}
+
+  /* ── верхняя полоса ── */
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:20;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:11px 20px;
+    background:rgba(0,0,0,.62);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-bottom:1px solid var(--hair-soft);
+  }
+  .snd{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:transparent;
+    border:1px solid var(--hair);
+    color:var(--text);
+    border-radius:980px;
+    padding:9px 16px;
+    font-family:inherit;
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.06em;
+    cursor:pointer;
+    transition:border-color .25s,color .25s,background .25s;
+  }
+  .snd:hover{border-color:rgba(224,164,76,.55);color:var(--gold);}
+  .snd:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+  .snd svg{width:15px;height:15px;fill:currentColor;flex-shrink:0;}
+  .snd .cross{display:inline;}
+  .snd.on{border-color:rgba(224,164,76,.55);color:var(--gold);}
+  .snd.on .cross{display:none;}
+  .snd.pulse{animation:pulse 2.6s ease-in-out infinite;}
+  @keyframes pulse{
+    0%,100%{border-color:var(--hair);}
+    50%{border-color:rgba(224,164,76,.5);}
+  }
+  .snd[disabled]{opacity:.3;cursor:default;animation:none;}
+
+  .langs{display:flex;gap:2px;}
+  .langs a{
+    color:var(--dim);
+    text-decoration:none;
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.06em;
+    padding:9px 13px;
+    border-radius:980px;
+    line-height:1;
+    transition:color .25s,background .25s;
+  }
+  .langs a:hover{color:var(--text);}
+  .langs a.on{color:#141008;background:var(--gold);}
+  .langs a:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+
+  /* ── шапка ── */
+  header{padding:70px 0 46px;text-align:center;}
+  .mark{
+    font-size:clamp(31px,7.6vw,58px);
+    font-weight:800;
+    letter-spacing:-.035em;
+    line-height:1.02;
+  }
+  .mark span{
+    color:var(--gold);
+  }
+  header p{
+    margin:18px auto 0;
+    max-width:20ch;
+    font-size:clamp(17px,4.6vw,24px);
+    font-weight:500;
+    letter-spacing:-.015em;
+    line-height:1.32;
+    color:var(--dim);
+  }
+
+  /* ── лента ── */
+  .railwrap{position:relative;}
+  /* световая лужа под центральным кадром — сцена, а не плоскость */
+  .railwrap::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    bottom:2px;
+    transform:translateX(-50%);
+    width:min(76vw,660px);
+    height:104px;
+    background:radial-gradient(50% 50% at 50% 50%, rgba(224,164,76,.15), rgba(224,164,76,0) 72%);
+    filter:blur(14px);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .rail{
+    position:relative;
+    z-index:1;
+    display:flex;
+    gap:16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scroll-snap-type:x mandatory;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+    padding-inline:max(18px, calc(50% - var(--half)));
+    padding-block:10px 26px;
+  }
+  .rail::-webkit-scrollbar{display:none;}
+  .rail.dragging{cursor:grabbing;scroll-snap-type:none;}
+
+  .item{
+    position:relative;
+    flex:0 0 auto;
+    height:var(--h);
+    aspect-ratio:9/16;
+    border-radius:22px;
+    overflow:hidden;
+    scroll-snap-align:center;
+    background:var(--ink-2);
+    transform:scale(.78);
+    filter:brightness(.42) saturate(.55);
+    transition:transform .5s cubic-bezier(.25,.9,.3,1),filter .5s,box-shadow .5s;
+    will-change:transform;
+    box-shadow:
+      inset 0 0 0 1px var(--hair-soft),
+      0 12px 30px rgba(0,0,0,.7);
+  }
+  .item.active{
+    transform:scale(1);
+    filter:none;
+    z-index:2;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.14),
+      0 2px 1px rgba(255,255,255,.06),
+      0 34px 70px -18px rgba(0,0,0,.92),
+      0 0 90px -30px rgba(224,164,76,.35);
+  }
+  /* стеклянный блик по верхней кромке */
+  .item::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:inherit;
+    background:linear-gradient(178deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.02) 14%,rgba(255,255,255,0) 34%);
+    pointer-events:none;
+    z-index:4;
+  }
+  .item video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .ph{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .ph b{
+    font-size:11px;
+    font-weight:600;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:rgba(255,255,255,.4);
+  }
+  .shade{
+    position:absolute;
+    left:0;right:0;bottom:0;
+    height:52%;
+    background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,.35) 45%,rgba(0,0,0,0));
+    pointer-events:none;
+    z-index:2;
+  }
+  .cap{
+    position:absolute;
+    left:0;right:0;bottom:18px;
+    padding:0 18px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    pointer-events:none;
+    z-index:3;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .4s,transform .4s;
+  }
+  .item.active .cap{opacity:1;transform:translateY(0);}
+  .cap b{
+    font-size:21px;
+    font-weight:800;
+    letter-spacing:-.025em;
+    line-height:1.1;
+  }
+  .cap i{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-style:italic;
+    font-size:15px;
+    letter-spacing:.01em;
+    color:var(--gold);
+  }
+
+  .nav{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    z-index:6;
+    width:44px;height:44px;
+    border-radius:50%;
+    border:1px solid var(--hair);
+    background:rgba(0,0,0,.5);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    color:var(--text);
+    font-size:19px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:border-color .25s,color .25s,opacity .25s;
+  }
+  .nav.prev{left:16px;}
+  .nav.next{right:16px;}
+  .nav:hover{border-color:rgba(224,164,76,.6);color:var(--gold);}
+  .nav:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+  .nav[disabled]{opacity:.18;cursor:default;}
+  @media (hover:none){.nav{display:none;}}
+
+  .railhint{
+    text-align:center;
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.14em;
+    color:var(--dim);
+    padding-bottom:10px;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ── текст ── */
+  .sectionhead{
+    padding-top:64px;
+    font-family:'Instrument Serif',Georgia,serif;
+    font-weight:400;
+    font-size:clamp(27px,6.6vw,44px);
+    line-height:1.12;
+    letter-spacing:-.01em;
+    text-wrap:balance;
+  }
+
+  .blocks{padding:44px 0 0;display:flex;flex-direction:column;gap:62px;}
+  .block{display:flex;flex-direction:column;gap:12px;}
+  .block .n{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-size:30px;
+    line-height:1;
+    color:var(--gold);
+  }
+  .block h2{
+    font-size:clamp(22px,5.4vw,33px);
+    font-weight:800;
+    line-height:1.16;
+    letter-spacing:-.032em;
+    text-wrap:balance;
+  }
+  .block p{
+    font-size:17px;
+    font-weight:400;
+    line-height:1.66;
+    color:var(--dim);
+  }
+  .block ul{
+    list-style:none;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    margin-top:8px;
+    padding-top:18px;
+    border-top:1px solid var(--hair-soft);
+  }
+  .block li{
+    position:relative;
+    padding-left:22px;
+    font-size:17px;
+    font-weight:400;
+    line-height:1.6;
+    color:var(--dim);
+  }
+  .block li::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:12px;
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--gold);
+    box-shadow:0 0 10px rgba(224,164,76,.8);
+  }
+
+  /* ── финал ── */
+  .cta{
+    margin-top:84px;
+    padding:52px 0 90px;
+    border-top:1px solid var(--hair-soft);
+    display:flex;
+    flex-direction:column;
+    gap:26px;
+    align-items:flex-start;
+  }
+  .cta h2{
+    font-size:clamp(27px,6.6vw,42px);
+    font-weight:800;
+    line-height:1.1;
+    letter-spacing:-.038em;
+    text-wrap:balance;
+  }
+  .cta h2 em{
+    font-family:'Instrument Serif',Georgia,serif;
+    font-style:italic;
+    font-weight:400;
+    letter-spacing:-.01em;
+    color:var(--gold);
+  }
+  .cta p{
+    font-size:17px;
+    font-weight:400;
+    line-height:1.62;
+    color:var(--dim);
+    margin-top:-10px;
+    max-width:46ch;
+  }
+  .cta a{
+    display:inline-block;
+    background:linear-gradient(180deg,#f0b95f,#d1913b);
+    color:#150f06;
+    text-decoration:none;
+    font-weight:800;
+    font-size:16px;
+    letter-spacing:-.01em;
+    padding:16px 30px;
+    border-radius:980px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.45),
+      0 10px 26px -8px rgba(224,164,76,.55);
+    transition:transform .25s,box-shadow .25s;
+  }
+  .cta a:hover{
+    transform:translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.55),
+      0 14px 32px -8px rgba(224,164,76,.7);
+  }
+  .cta a:focus-visible{outline:2px solid var(--text);outline-offset:4px;}
+
+  .maillabel{
+    font-size:11.5px;
+    font-weight:600;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--dim);
+    margin-bottom:-16px;
+  }
+  .mailrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .addr{
+    font-size:clamp(17px,4.6vw,21px);
+    font-weight:600;
+    letter-spacing:-.02em;
+    color:var(--text);
+    word-break:break-all;
+  }
+  .copy{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:40px;
+    height:40px;
+    padding:0;
+    border-radius:50%;
+    border:1px solid var(--hair);
+    background:transparent;
+    color:var(--text);
+    cursor:pointer;
+    flex-shrink:0;
+    transition:border-color .25s,color .25s;
+  }
+  .copy:hover{border-color:rgba(224,164,76,.6);color:var(--gold);}
+  .copy:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+  .copy svg{
+    width:16px;height:16px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.7;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+  }
+  .copy .ok{display:none;}
+  .copy.done{border-color:var(--gold);color:var(--gold);}
+  .copy.done .ic{display:none;}
+  .copy.done .ok{display:block;}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition-duration:.01ms !important;animation:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bgfx" aria-hidden="true"></canvas>
+
+<div class="topbar">
+  <button class="snd pulse" id="snd" type="button" aria-pressed="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9v6h4l5 4V5L8 9H4z"/>
+      <path class="cross" d="M16.5 8.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>
+    <span>Ääni</span>
+  </button>
+  <nav class="langs">
+    <a class="on" href="index.html" aria-current="page">FI</a>
+    <a href="en.html">EN</a>
+  </nav>
+</div>
+
+<div class="wrap">
+  <header>
+    <div class="mark">AI Craft <span>Studio</span></div>
+    <p>Premium-visuaalit. Maksimimyynti.</p>
+  </header>
+</div>
+
+<div class="railwrap">
+<button class="nav prev" id="prev" type="button" aria-label="Seuraava">&#8249;</button>
+<button class="nav next" id="next" type="button" aria-label="Edellinen">&#8250;</button>
+
+<div class="rail" id="rail">
+
+  <div class="item">
+    <video src="video/09.mp4" poster="video/09.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Lähikuva</i><b></b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/01.mp4" poster="video/01.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Makro</i><b>Pizzan ainekset ilmassa</b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/02.mp4" poster="video/02.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Makro-ajo</i><b>Höyryävä pizza</b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/03.mp4" poster="video/03.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Lähikuva</i><b>Pizzan paisto uunissa</b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/04.mp4" poster="video/04.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Pyörivä lähikuva</i><b>Brändätty pizzalaatikko</b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/05.mp4" poster="video/05.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Pyörivä lähikuva</i><b></b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/06.mp4" poster="video/06.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Pyörivä lähikuva</i><b></b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/07.mp4" poster="video/07.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Lähikuva</i><b></b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/08.mp4" poster="video/08.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Lähikuva</i><b></b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/10.mp4" poster="video/10.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Lähikuva</i><b></b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/11.mp4" poster="video/11.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Lähikuva</i><b></b></div>
+  </div>
+
+  <div class="item">
+    <video src="video/12.mp4" poster="video/12.jpg" muted loop playsinline preload="none"></video>
+    <div class="shade"></div>
+    <div class="cap"><i>Lähikuva</i><b></b></div>
+  </div>
+
+</div>
+</div>
+
+<p class="railhint" id="hint">1 / 12</p>
+
+<div class="wrap">
+
+  <h2 class="sectionhead">Näin kasvatamme liikevaihtoasi:</h2>
+
+  <div class="blocks">
+
+    <div class="block">
+      <div class="n">1</div>
+      <h2>McDonald&rsquo;s-tason visuaalinen konsepti</h2>
+      <p>McDonald&rsquo;s ei myy vain ruokaa &ndash; se herättää ruokahalun ensisilmäyksellä. Luomme visuaalista sisältöä, jota on mahdotonta vastustaa: lähikuvia, mehukkaita yksityiskohtia ja suussa sulavia otoksia. Tällainen sisältö poistaa asiakkaan epäröinnin, laukaisee heräteostoksia ja lisää uusintatilauksia. Ja mikä parasta &ndash; nostamme valokeilaan juuri ne annokset, jotka tuovat sinulle parhaan katteen.</p>
+    </div>
+
+    <div class="block">
+      <div class="n">2</div>
+      <h2>Sisältö, joka myy puolestasi</h2>
+      <p>Saat suurten ketjujen tasoiset kuvat ja videosisällöt ilman mainostoimistojen jättilaskuja:</p>
+      <ul>
+        <li>Ammattimaiset makrokuvat ja tekstuurit (sulava juusto, kastikkeet, rapea pinta, höyry)</li>
+        <li>Dynaamiset &rdquo;hands-only&rdquo;-videot annosten valmistuksesta ja kokoamisesta</li>
+        <li>Yhtenäinen ja tyylikäs ilme koko ruokalistalle &ndash; ei vain muutamaa satunnaista onnistunutta kuvaa</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="n">3</div>
+      <h2>Valmista sisältöä sosiaaliseen mediaan</h2>
+      <p>Kaikki materiaali kuvataan niin, että se on heti valmista julkaistavaksi Reelsiin, Shortsiin ja some-syötteeseen. Saat valmiin some-sisällön suoraan omasta keittiöstäsi &ndash; ilman lisämaksullisia kuvauspäiviä.</p>
+    </div>
+
+  </div>
+
+  <div class="cta">
+    <h2>Oletko valmis <em>rikkomaan myyntiennätyksiä?</em></h2>
+    <p>Suunnitellaan online-menusi uudelleen ja paketoidaan se visuaalisesti niin, ettei asiakkaasi voi vastustaa sitä.</p>
+    <a href="https://ai-craft-studio.com/index.html">Tutustu koko järjestelmään</a>
+    <p class="maillabel">Ota yhteyttä</p>
+    <div class="mailrow">
+      <span class="addr">denis@ai-craft-studio.com</span>
+      <button class="copy" id="copy" type="button" aria-label="Kopioi sähköpostiosoite">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        <svg class="ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var rail  = document.getElementById('rail');
+  var hint  = document.getElementById('hint');
+  var prev  = document.getElementById('prev');
+  var next  = document.getElementById('next');
+  var items = rail.querySelectorAll('.item');
+  var total = items.length;
+
+  function current(){
+    var mid = rail.scrollLeft + rail.clientWidth / 2;
+    var best = 0, bestD = Infinity;
+    for (var i = 0; i < total; i++){
+      var c = items[i].offsetLeft + items[i].offsetWidth / 2;
+      var d = Math.abs(c - mid);
+      if (d < bestD){ bestD = d; best = i; }
+    }
+    return best;
+  }
+
+  function goTo(i){
+    if (i < 0) i = 0;
+    if (i > total - 1) i = total - 1;
+    var it = items[i];
+    var left = it.offsetLeft - (rail.clientWidth - it.offsetWidth) / 2;
+    rail.scrollTo({left: left, behavior: 'smooth'});
+  }
+
+  var activeIdx = -1;
+
+  /* крупный — тот, что по центру; он же единственный играет */
+  function setActive(i){
+    if (i === activeIdx) return;
+    activeIdx = i;
+    for (var k = 0; k < total; k++){
+      var it = items[k];
+      var v = it.querySelector('video');
+      if (k === i){
+        it.classList.add('active');
+        if (v){ var p = v.play(); if (p && p.catch) p.catch(function(){}); }
+      } else {
+        it.classList.remove('active');
+        if (v) v.pause();
+      }
+    }
+  }
+
+  function refresh(){
+    var i = current();
+    setActive(i);
+    hint.textContent = (i + 1) + ' / ' + total;
+    /* стрелка показывает, куда поедет лента:
+       левая гаснет, когда лента уже уехала влево до упора */
+    prev.disabled = rail.scrollLeft > rail.scrollWidth - rail.clientWidth - 4;
+    next.disabled = rail.scrollLeft < 4;
+  }
+
+  rail.addEventListener('scroll', refresh, {passive:true});
+  window.addEventListener('resize', refresh);
+  refresh();
+
+  /* стрелка = направление движения ленты.
+     ‹ слева  — лента едет влево  (следующий кадр приходит справа)
+     › справа — лента едет вправо (возврат к предыдущим) */
+  prev.addEventListener('click', function(){ goTo(current() + 1); });
+  next.addEventListener('click', function(){ goTo(current() - 1); });
+
+  /* колесо мышки: вертикальная прокрутка двигает ленту вбок */
+  var wheelLock = false;
+  rail.addEventListener('wheel', function(e){
+    var dy = Math.abs(e.deltaY), dx = Math.abs(e.deltaX);
+    if (dx > dy) return;
+    if (dy < 2) return;
+    e.preventDefault();
+    if (wheelLock) return;
+    wheelLock = true;
+    goTo(current() + (e.deltaY > 0 ? 1 : -1));
+    setTimeout(function(){ wheelLock = false; }, 420);
+  }, {passive:false});
+
+  /* перетаскивание мышью */
+  var down = false, startX = 0, startLeft = 0, moved = 0;
+
+  rail.addEventListener('pointerdown', function(e){
+    if (e.pointerType === 'touch') return;
+    down = true; moved = 0;
+    startX = e.clientX;
+    startLeft = rail.scrollLeft;
+    rail.classList.add('dragging');
+    rail.setPointerCapture(e.pointerId);
+  });
+
+  rail.addEventListener('pointermove', function(e){
+    if (!down) return;
+    var d = e.clientX - startX;
+    moved = Math.abs(d);
+    rail.scrollLeft = startLeft - d;
+  });
+
+  function endDrag(){
+    if (!down) return;
+    down = false;
+    rail.classList.remove('dragging');
+    if (moved > 8) goTo(current());
+  }
+  rail.addEventListener('pointerup', endDrag);
+  rail.addEventListener('pointercancel', endDrag);
+
+  /* клавиши по тому же правилу, что и кнопки */
+  rail.setAttribute('tabindex', '0');
+  rail.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowLeft'){  e.preventDefault(); goTo(current() + 1); }
+    if (e.key === 'ArrowRight'){ e.preventDefault(); goTo(current() - 1); }
+  });
+
+  /* ── копирование адреса ── */
+  var copyBtn = document.getElementById('copy');
+  if (copyBtn){
+    var addr = 'denis@ai-craft-studio.com';
+
+    function copied(){
+      copyBtn.classList.add('done');
+      setTimeout(function(){ copyBtn.classList.remove('done'); }, 1900);
+    }
+
+    /* запасной способ: буфер обмена доступен не во всех условиях,
+       например когда страницу открыли файлом с диска */
+    function oldWay(){
+      var ta = document.createElement('textarea');
+      ta.value = addr;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); copied(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
+
+    copyBtn.addEventListener('click', function(){
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(addr).then(copied).catch(oldWay);
+      } else {
+        oldWay();
+      }
+    });
+  }
+
+  /* ── фоновая музыка ──
+     Браузер не даёт заиграть звуку без действия человека, поэтому только по кнопке.
+     Треки положить в папку audio\ рядом с этим файлом. */
+  /* vol у каждого свой: треки сведены на разной громкости,
+     выравниваю здесь, чтобы не перекодировать файлы */
+  var TRACKS = [
+    {src: 'audio/track-1.mp3', vol: 0.62},   /* Дойчланд 2       -12.9 LUFS */
+    {src: 'audio/track-2.mp3', vol: 0.58},   /* Лебеди           -12.3 LUFS */
+    {src: 'audio/track-3.mp3', vol: 0.47},   /* амбиент VB 2     -10.6 LUFS */
+    {src: 'audio/track-4.mp3', vol: 0.57},   /* Про ди муравей   -12.2 LUFS */
+    {src: 'audio/track-5.mp3', vol: 0.62}    /* BV 44            -12.9 LUFS */
+  ];
+  var snd = document.getElementById('snd');
+  var au = new Audio();
+  var ti = 0, playing = false;
+
+  au.preload = 'none';
+
+  function loadTrack(i){
+    au.src = TRACKS[i].src;
+    au.volume = TRACKS[i].vol;
+  }
+
+  au.addEventListener('ended', function(){
+    ti = (ti + 1) % TRACKS.length;
+    loadTrack(ti);
+    au.play().catch(fail);
+  });
+  au.addEventListener('error', fail);
+
+  function fail(){
+    playing = false;
+    snd.disabled = true;
+    snd.classList.remove('on', 'pulse');
+    snd.setAttribute('aria-pressed', 'false');
+  }
+
+  snd.addEventListener('click', function(){
+    if (playing){
+      au.pause();
+      playing = false;
+      snd.classList.remove('on');
+      snd.classList.add('pulse');
+      snd.setAttribute('aria-pressed', 'false');
+      return;
+    }
+    if (!au.src) loadTrack(ti);
+    var p = au.play();
+    if (p && p.then){
+      p.then(function(){
+        playing = true;
+        snd.classList.add('on');
+        snd.classList.remove('pulse');
+        snd.setAttribute('aria-pressed', 'true');
+      }).catch(fail);
+    }
+  });
+})();
+
+/* ── живой фон: выставленный свет на глянцевом чёрном ── */
+(function(){
+  var cv = document.getElementById('bgfx');
+  if (!cv) return;
+  var gl = cv.getContext('webgl', {antialias:false, alpha:false, powerPreference:'low-power'});
+  if (!gl){ cv.style.display = 'none'; return; }
+
+  var VS = 'attribute vec2 a_p; void main(){ gl_Position = vec4(a_p,0.0,1.0); }';
+
+  var FS = [
+    'precision highp float;',
+    'uniform vec2 u_res; uniform float u_time;',
+    'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }',
+    'float noise(vec2 p){',
+    '  vec2 i=floor(p), f=fract(p);',
+    '  f=f*f*(3.0-2.0*f);',
+    '  float a=hash(i), b=hash(i+vec2(1.0,0.0)), c=hash(i+vec2(0.0,1.0)), d=hash(i+vec2(1.0,1.0));',
+    '  return mix(mix(a,b,f.x), mix(c,d,f.x), f.y);',
+    '}',
+    'float fbm(vec2 p){',
+    '  float v=0.0, a=0.5;',
+    '  for(int i=0;i<5;i++){ v+=a*noise(p); p*=2.03; a*=0.5; }',
+    '  return v;',
+    '}',
+    'void main(){',
+    '  vec2 uv = gl_FragCoord.xy/u_res;',
+    '  vec2 q = uv*vec2(u_res.x/u_res.y,1.0)*2.4;',
+    '  float t = u_time*0.055;',
+    /* та же математика, что в 21-м: облако, искривлённое вторым облаком */
+    '  vec2 w = vec2(fbm(q + vec2(t*1.3, -t)), fbm(q + vec2(-t, t*0.8) + 4.7));',
+    /* минус по игреку — дым идёт вверх, а не вниз */
+    '  float f = fbm(q + w*1.9 + vec2(0.0, -t*0.95));',
+    /* глянцевый чёрный и три ступени серого вместо коричневого с оранжевым */
+    '  vec3 INK  = vec3(0.008,0.009,0.011);',
+    '  vec3 DARK = vec3(0.105,0.110,0.122);',
+    '  vec3 MID  = vec3(0.46,0.47,0.50);',
+    '  vec3 LIT  = vec3(0.88,0.89,0.92);',
+    '  float veins = pow(smoothstep(0.42, 0.86, f), 2.2);',
+    '  float glow = pow(smoothstep(0.60, 0.99, f), 5.0);',
+    '  vec3 col = mix(INK, DARK, smoothstep(0.18, 0.72, f));',
+    '  col = mix(col, MID, veins*0.85);',
+    '  col += LIT*glow*0.34;',
+    '  col *= 1.0 - 0.35*pow(distance(uv, vec2(0.5)), 1.6);',
+    '  float g = hash(gl_FragCoord.xy + fract(u_time)*97.0);',
+    '  col += (g - 0.5)*0.012;',
+    '  gl_FragColor = vec4(col, 1.0);',
+    '}'
+  ].join('\n');
+
+  function sh(type, src){
+    var s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null;
+  }
+
+  var vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
+  if (!vs || !fs){ cv.style.display = 'none'; return; }
+
+  var pr = gl.createProgram();
+  gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+  if (!gl.getProgramParameter(pr, gl.LINK_STATUS)){ cv.style.display = 'none'; return; }
+
+  var buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  gl.useProgram(pr);
+  var loc = gl.getAttribLocation(pr, 'a_p');
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+  var uRes = gl.getUniformLocation(pr, 'u_res');
+  var uTime = gl.getUniformLocation(pr, 'u_time');
+  var DPR = Math.min(window.devicePixelRatio || 1, 1.5);
+  var start = performance.now();
+
+  function frame(now){
+    if (!document.hidden){
+      var w = Math.max(1, Math.floor(cv.clientWidth * DPR));
+      var h = Math.max(1, Math.floor(cv.clientHeight * DPR));
+      if (cv.width !== w || cv.height !== h){
+        cv.width = w; cv.height = h;
+        gl.viewport(0, 0, w, h);
+      }
+      gl.useProgram(pr);
+      gl.uniform2f(uRes, cv.width, cv.height);
+      gl.uniform1f(uTime, (now - start) / 1000);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
