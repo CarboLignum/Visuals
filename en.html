@@ -14,7 +14,7 @@
     --ink-2:#0b0c0e;
     --text:#f5f5f7;
     --dim:#a1a1a6;
-    --gold:#e0a44c;
+    --gold:#e03523;
     --hair:rgba(255,255,255,.10);
     --hair-soft:rgba(255,255,255,.06);
     --h:min(66vh,560px);
@@ -74,16 +74,16 @@
     cursor:pointer;
     transition:border-color .25s,color .25s,background .25s;
   }
-  .snd:hover{border-color:rgba(224,164,76,.55);color:var(--gold);}
+  .snd:hover{border-color:rgba(224,53,35,.55);color:var(--gold);}
   .snd:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
   .snd svg{width:15px;height:15px;fill:currentColor;flex-shrink:0;}
   .snd .cross{display:inline;}
-  .snd.on{border-color:rgba(224,164,76,.55);color:var(--gold);}
+  .snd.on{border-color:rgba(224,53,35,.55);color:var(--gold);}
   .snd.on .cross{display:none;}
   .snd.pulse{animation:pulse 2.6s ease-in-out infinite;}
   @keyframes pulse{
     0%,100%{border-color:var(--hair);}
-    50%{border-color:rgba(224,164,76,.5);}
+    50%{border-color:rgba(224,53,35,.5);}
   }
   .snd[disabled]{opacity:.3;cursor:default;animation:none;}
 
@@ -100,7 +100,7 @@
     transition:color .25s,background .25s;
   }
   .langs a:hover{color:var(--text);}
-  .langs a.on{color:#141008;background:var(--gold);}
+  .langs a.on{color:#ffffff;background:var(--gold);}
   .langs a:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
 
   header{padding:70px 0 46px;text-align:center;}
@@ -130,7 +130,7 @@
     transform:translateX(-50%);
     width:min(76vw,660px);
     height:104px;
-    background:radial-gradient(50% 50% at 50% 50%, rgba(224,164,76,.15), rgba(224,164,76,0) 72%);
+    background:radial-gradient(50% 50% at 50% 50%, rgba(224,53,35,.15), rgba(224,53,35,0) 72%);
     filter:blur(14px);
     pointer-events:none;
     z-index:0;
@@ -177,7 +177,7 @@
       inset 0 0 0 1px rgba(255,255,255,.14),
       0 2px 1px rgba(255,255,255,.06),
       0 34px 70px -18px rgba(0,0,0,.92),
-      0 0 90px -30px rgba(224,164,76,.35);
+      0 0 90px -30px rgba(224,53,35,.35);
   }
   .item::after{
     content:"";
@@ -264,7 +264,7 @@
   }
   .nav.prev{left:16px;}
   .nav.next{right:16px;}
-  .nav:hover{border-color:rgba(224,164,76,.6);color:var(--gold);}
+  .nav:hover{border-color:rgba(224,53,35,.6);color:var(--gold);}
   .nav:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
   .nav[disabled]{opacity:.18;cursor:default;}
   @media (hover:none){.nav{display:none;}}
@@ -335,7 +335,7 @@
     width:6px;height:6px;
     border-radius:50%;
     background:var(--gold);
-    box-shadow:0 0 10px rgba(224,164,76,.8);
+    box-shadow:0 0 10px rgba(224,53,35,.8);
   }
 
   .cta{
@@ -371,8 +371,8 @@
   }
   .cta a{
     display:inline-block;
-    background:linear-gradient(180deg,#f0b95f,#d1913b);
-    color:#150f06;
+    background:linear-gradient(180deg,#f0543e,#c22a17);
+    color:#ffffff;
     text-decoration:none;
     font-weight:800;
     font-size:16px;
@@ -381,14 +381,14 @@
     border-radius:980px;
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.45),
-      0 10px 26px -8px rgba(224,164,76,.55);
+      0 10px 26px -8px rgba(224,53,35,.55);
     transition:transform .25s,box-shadow .25s;
   }
   .cta a:hover{
     transform:translateY(-1px);
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.55),
-      0 14px 32px -8px rgba(224,164,76,.7);
+      0 14px 32px -8px rgba(224,53,35,.7);
   }
   .cta a:focus-visible{outline:2px solid var(--text);outline-offset:4px;}
 
@@ -423,7 +423,7 @@
     flex-shrink:0;
     transition:border-color .25s,color .25s;
   }
-  .copy:hover{border-color:rgba(224,164,76,.6);color:var(--gold);}
+  .copy:hover{border-color:rgba(224,53,35,.6);color:var(--gold);}
   .copy:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
   .copy svg{
     width:16px;height:16px;
@@ -438,6 +438,17 @@
   .copy.done .ic{display:none;}
   .copy.done .ok{display:block;}
 
+
+  /* ── телефон: ширину кадра задаём от ширины экрана ──
+     если считать от высоты, карточка занимает почти весь экран,
+     а уменьшение соседей до 78% доедает полоску, которая должна торчать */
+  @media (max-width: 600px){
+    :root{
+      --h: min(calc(70vw * 1.7778), 62vh);
+    }
+    .rail{gap:10px;}
+    .item{transform:scale(.86);}
+  }
   @media (prefers-reduced-motion:reduce){
     *{transition-duration:.01ms !important;animation:none !important;}
   }
@@ -477,61 +488,73 @@
   <div class="item">
     <video src="09.mp4" poster="09.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>VFX &amp; Lifestyle Storytelling</i><b>Drinking energy drink</b></div>
   </div>
 
   <div class="item">
     <video src="01.mp4" poster="01.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Levitating Orbital Shot</i><b>Floating pizza ingredients</b></div>
   </div>
 
   <div class="item">
     <video src="02.mp4" poster="02.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Zoom-in, FPV Macro Shot</i><b>Flying over pizza</b></div>
   </div>
 
   <div class="item">
     <video src="03.mp4" poster="03.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Cooking Process Close-Up</i><b>Sauce drizzled on pizza</b></div>
   </div>
 
   <div class="item">
     <video src="04.mp4" poster="04.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Package Branding</i><b>Branded pizza box</b></div>
   </div>
 
   <div class="item">
     <video src="05.mp4" poster="05.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Finished Dishes Close-Up</i><b>Slicing cooked meat</b></div>
   </div>
 
   <div class="item">
     <video src="06.mp4" poster="06.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Exploded View Rotating Ingredients</i><b>Ice cream ingredients separating</b></div>
   </div>
 
   <div class="item">
     <video src="07.mp4" poster="07.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Moving Taste Shot, Food Porn</i><b>Vampire tasting ice cream</b></div>
   </div>
 
   <div class="item">
     <video src="08.mp4" poster="08.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>The Taste Shot, Power Grip</i><b>Crushing energy drink can</b></div>
   </div>
 
   <div class="item">
     <video src="10.mp4" poster="10.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Exploded View, Particle FX</i><b>Energy drink can exploding</b></div>
   </div>
 
   <div class="item">
     <video src="11.mp4" poster="11.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Branded Commercial</i><b>Restaurant brand and beer</b></div>
   </div>
 
   <div class="item">
     <video src="12.mp4" poster="12.jpg" muted loop playsinline preload="none"></video>
     <div class="shade"></div>
+    <div class="cap"><i>Character VFX Transformation</i><b>Vampire drinking coffee</b></div>
   </div>
 
 </div>
